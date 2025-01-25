@@ -27,8 +27,8 @@ jobs:
     
     - name: Build and Push Docker Image
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest .
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/my-speakx-assignment:latest .
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/my-speakx-assignment:latest
   
   deploy:
     needs: build-and-push
@@ -46,14 +46,10 @@ jobs:
           docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
           
           # Pull latest image
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest
-          
-          # Stop and remove existing container
-          docker stop myapp || true
-          docker rm myapp || true
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-speakx-assignment:latest
           
           # Run new container
           docker run -d \
-            --name myapp \
+            --name my-speakx-assignment \
             -p 3000:3000 \
-            ${{ secrets.DOCKERHUB_USERNAME }}/myapp:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/my-speakx-assignment:latest
