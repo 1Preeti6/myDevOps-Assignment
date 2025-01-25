@@ -1,42 +1,55 @@
-name: Deploy to AWS EC2
+name: Build, Push, and Deploy
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
 
 jobs:
-  deploy:
+  build-and-push:
     runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v2
     
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v1
+    - name: Setup Node.js
+      uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+    
+    - name: Install Dependencies
+      run: npm install
     
     - name: Login to Docker Hub
-      uses: docker/login-action@v1
+      uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
     
     - name: Build and Push Docker Image
       run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/mobile-backend:latest .
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/mobile-backend:latest
+        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/my-speakx-assignment:latest .
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/my-speakx-assignment:latest
+  
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
     
+    steps:
     - name: Deploy to EC2
       uses: appleboy/ssh-action@master
       with:
-        host: ${{ secrets.EC2_PUBLIC_IP }}
+        host: ${{ secrets.SERVER_IP }}
         username: ubuntu
-        key: ${{ secrets.EC2_SSH_PRIVATE_KEY }}
+        key: ${{ secrets.SERVER_SSH_KEY }}
         script: |
-          # Pull latest Docker image
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/mobile-backend:latest
+          # Login to Docker Hub
+          docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+          
+          # Pull latest image
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-speakx-assignment:latest
           
           # Run new container
           docker run -d \
-            --name mobile-backend \
+            --name my-speakx-assignment \
             -p 3000:3000 \
-            ${{ secrets.DOCKERHUB_USERNAME }}/mobile-backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/my-speakx-assignment:latest
